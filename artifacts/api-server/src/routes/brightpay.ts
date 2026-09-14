@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { Router, type IRouter } from "express";
 
 const router: IRouter = Router();
@@ -6,6 +7,7 @@ const BRIGHTPAY_BASE_URL =
   "https://lqlpgghortuhdxnfqavj.supabase.co/functions/v1";
 const MIN_AMOUNT = 10;
 const MAX_AMOUNT = 150_000;
+const WITHDRAWAL_ENDPOINT = `${BRIGHTPAY_BASE_URL}/endpoint-withdraw`;
 
 function getApiKey() {
   return process.env.BRIGHTPAY_API_KEY;
@@ -147,6 +149,85 @@ router.get("/brightpay/status", async (req, res) => {
     return res.status(200).json(payload);
   } catch (error) {
     req.log.error({ err: error }, "BrightPay status request failed");
+    return res.status(502).json({
+      error: "BrightPay is temporarily unavailable. Please try again.",
+    });
+  }
+});
+
+router.post("/brightpay/withdraw", async (req, res) => {
+  const apiKey = getApiKey();
+  const signingSecret = process.env.BRIGHTPAY_SIGNING_SECRET;
+  if (!apiKey || !signingSecret) {
+    req.log.error("BrightPay withdrawal credentials are missing");
+    return res.status(503).json({
+      error: "Withdrawals are not configured yet. Add the BrightPay signing secret in Replit Secrets.",
+    });
+  }
+  if (process.env.BRIGHTPAY_WITHDRAWALS_ENABLED !== "true") {
+    return res.status(503).json({
+      error: "Withdrawals are paused until verified account and ledger checks are enabled.",
+    });
+  }
+
+  const amount = Number(req.body?.amount);
+  const phoneNumber = normalizePhoneNumber(req.body?.phone_number);
+  const externalReference =
+    typeof req.body?.external_reference === "string"
+      ? req.body.external_reference.trim()
+      : "";
+  if (
+    !Number.isInteger(amount) ||
+    amount < MIN_AMOUNT ||
+    amount > MAX_AMOUNT ||
+    !phoneNumber ||
+    !isValidExternalReference(externalReference)
+  ) {
+    return res.status(400).json({
+      error:
+        "Enter a valid Kenyan phone number, a whole KSh amount between 10 and 150,000, and a unique external reference.",
+    });
+  }
+
+  const body = JSON.stringify({
+    amount,
+    phone_number: phoneNumber,
+    external_reference: externalReference,
+  });
+  const timestamp = String(Date.now());
+  const signature = createHmac("sha256", signingSecret)
+    .update(`${timestamp}.${body}`)
+    .digest("hex");
+
+  try {
+    const response = await fetch(WITHDRAWAL_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "x-timestamp": timestamp,
+        "x-signature": signature,
+      },
+      body,
+    });
+    const payload = await readJson(response);
+    if (!response.ok || payload.success === false) {
+      req.log.warn(
+        { status: response.status, externalReference },
+        "BrightPay withdrawal failed",
+      );
+      return res.status(response.ok ? 502 : response.status).json({
+        error:
+          typeof payload.message === "string"
+            ? payload.message
+            : typeof payload.error === "string"
+              ? payload.error
+              : "BrightPay could not start the withdrawal.",
+      });
+    }
+    return res.status(200).json(payload);
+  } catch (error) {
+    req.log.error({ err: error }, "BrightPay withdrawal request failed");
     return res.status(502).json({
       error: "BrightPay is temporarily unavailable. Please try again.",
     });

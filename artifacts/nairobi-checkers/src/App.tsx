@@ -6,12 +6,15 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Link, Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import type { LucideIcon } from 'lucide-react';
 import {
-  ArrowDownLeft, ArrowRight, ArrowUpRight, Award, Bell, Check, ChevronRight, CircleHelp,
+  ArrowDownLeft, ArrowRight, ArrowUpRight, Award, BarChart3, Bell, Bot, Check, ChevronRight, CircleHelp,
   Coins, Copy, Crown, Dices, DoorOpen, Download, Flag, Gamepad2, Headphones,
-  History, Home as HomeIcon, Info, Landmark, LockKeyhole, Menu, MoreHorizontal, Play, Plus, RefreshCw, ShieldCheck, Sparkles, Swords, Target,
+  History, Home as HomeIcon, Info, Landmark, LockKeyhole, Menu, MoreHorizontal, Play, Plus, RefreshCw, ShieldCheck, SlidersHorizontal, Sparkles, Swords, Target,
   Trophy, UserRound, Users, WalletCards, X, Zap,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
+import { TermsGate } from '@/components/terms-gate';
+import { AccountGate, type PlayerAccount } from '@/components/account-gate';
+import AdminPage from '@/pages/admin';
 
 const queryClient = new QueryClient();
 type Mode = 'demo' | 'cash';
@@ -25,6 +28,7 @@ const navItems: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/tournament', label: 'Tournaments', icon: Trophy },
   { href: '/wallet', label: 'Wallet', icon: WalletCards },
   { href: '/profile', label: 'Profile', icon: UserRound },
+  { href: '/admin', label: 'Owner console', icon: BarChart3 },
 ];
 
 function secureInt(max: number) {
@@ -83,7 +87,7 @@ function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (next: Mode) => 
   </div>;
 }
 
-function Shell({ children, mode, onModeChange }: { children: ReactNode; mode: Mode; onModeChange: (next: Mode) => void }) {
+function Shell({ children, mode, onModeChange, hasAccount, onRequestAccount }: { children: ReactNode; mode: Mode; onModeChange: (next: Mode) => void; hasAccount: boolean; onRequestAccount: () => void }) {
   const [location] = useLocation();
   const [modeAlert, setModeAlert] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -103,10 +107,11 @@ function Shell({ children, mode, onModeChange }: { children: ReactNode; mode: Mo
         {navItems.map((item) => { const Icon = item.icon; const active = item.href === location; return <Link href={item.href} data-testid={`link-nav-${item.label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${active ? 'bg-[#d6a944] text-[#132a22]' : 'text-[#96afa2] hover:bg-[#16352b] hover:text-[#f0e7cf]'}`} key={item.href}><Icon size={18} /><span>{item.label}</span>{item.label === 'Tournaments' && <span className="ml-auto rounded-full bg-[#d6a944]/20 px-1.5 py-0.5 text-[9px] text-[#e4c36e]">LIVE</span>}</Link>; })}
       </nav>
       <div className="mt-auto space-y-3">
-        <div className="rounded-2xl border border-[#345246] bg-[#122d24] p-4">
-          <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-[#c9d8cd]"><ShieldCheck size={15} className="text-[#d6a944]" /> Safe play</div>
-          <p className="text-[11px] leading-relaxed text-[#769084]">Cash mode is a simulated experience. No real money moves here.</p>
-        </div>
+         <div className="rounded-2xl border border-[#345246] bg-[#122d24] p-4">
+           <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-[#c9d8cd]"><ShieldCheck size={15} className="text-[#d6a944]" /> Free-first play</div>
+           <p className="text-[11px] leading-relaxed text-[#769084]">{hasAccount ? 'Your account unlocks cash options with fees shown before entry.' : 'Free games need no account. Create one only when you choose cash play.'}</p>
+           {!hasAccount && <button onClick={onRequestAccount} className="mt-3 w-full rounded-lg border border-[#d6a944]/40 px-3 py-2 text-[10px] font-bold text-[#e3c16a]">Create player account</button>}
+         </div>
         <div className="flex items-center gap-3 border-t border-[#294237] pt-4"><div className="grid h-9 w-9 place-items-center rounded-full bg-[#d6a944] font-display font-bold text-[#153028]">AM</div><div className="min-w-0"><p className="truncate text-sm font-bold">Amani Mwangi</p><p className="text-[10px] text-[#769084]">Night Owl · 1,284 XP</p></div><MoreHorizontal size={17} className="ml-auto text-[#789385]" /></div>
       </div>
     </aside>
@@ -117,8 +122,8 @@ function Shell({ children, mode, onModeChange }: { children: ReactNode; mode: Mo
          <div className="ml-auto flex items-center gap-2"><div className="hidden items-center gap-1.5 rounded-full bg-[#17352b] px-3 py-2 text-[11px] text-[#b9c9bd] sm:flex"><span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[#4fd28a]" /> Lounge is humming</div><ModeSwitch mode={mode} onChange={changeMode} /><InstallAppButton /><button aria-label="Notifications" data-testid="button-notifications" onClick={() => window.alert('No new alerts. You are all caught up.')} className="btn-quiet rounded-full p-2"><Bell size={16} /></button></div>
       </div>
     </header>
-    {mobileMenu && <div className="fixed inset-0 z-50 bg-[#07150f]/80 md:hidden" onClick={() => setMobileMenu(false)}><div className="h-full w-[280px] border-r border-[#315043] bg-[#0d241d] p-5" onClick={(event) => event.stopPropagation()}><div className="mb-8 flex items-center justify-between"><span className="font-display font-bold">Menu</span><button data-testid="button-close-menu" onClick={() => setMobileMenu(false)} className="btn-quiet rounded-lg p-2"><X size={16} /></button></div><nav className="space-y-2">{navItems.map((item) => { const Icon = item.icon; return <Link onClick={() => setMobileMenu(false)} href={item.href} data-testid={`link-mobile-${item.label.toLowerCase()}`} className="flex items-center gap-3 rounded-xl px-3 py-3 text-[#c4d1c6] hover:bg-[#17382c]" key={item.href}><Icon size={18} /> {item.label}</Link>; })}</nav></div></div>}
-    {modeAlert && <div role="alert" data-testid="alert-mode-change" className="fixed left-1/2 top-[72px] z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#d6a944]/50 bg-[#18382e] px-4 py-2.5 text-xs font-semibold text-[#f4e6bd] shadow-2xl"><Info size={15} className="text-gold" /> {mode === 'cash' ? 'Real Cash mode selected · simulated only' : 'Demo Play mode selected · no stakes'}</div>}
+     {mobileMenu && <div className="fixed inset-0 z-50 bg-[#07150f]/80 md:hidden" onClick={() => setMobileMenu(false)}><div className="h-full w-[280px] border-r border-[#315043] bg-[#0d241d] p-5" onClick={(event) => event.stopPropagation()}><div className="mb-8 flex items-center justify-between"><span className="font-display font-bold">Menu</span><button data-testid="button-close-menu" onClick={() => setMobileMenu(false)} className="btn-quiet rounded-lg p-2"><X size={16} /></button></div><nav className="space-y-2">{navItems.map((item) => { const Icon = item.icon; return <Link onClick={() => setMobileMenu(false)} href={item.href} data-testid={`link-mobile-${item.label.toLowerCase()}`} className="flex items-center gap-3 rounded-xl px-3 py-3 text-[#c4d1c6] hover:bg-[#17382c]" key={item.href}><Icon size={18} /> {item.label}</Link>; })}</nav>{!hasAccount && <button onClick={() => { setMobileMenu(false); onRequestAccount(); }} className="mt-8 w-full rounded-xl border border-[#d6a944]/40 px-3 py-3 text-left text-xs font-bold text-[#e3c16a]">Create player account</button>}</div></div>}
+     {modeAlert && <div role="alert" data-testid="alert-mode-change" className="fixed left-1/2 top-[72px] z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#d6a944]/50 bg-[#18382e] px-4 py-2.5 text-xs font-semibold text-[#f4e6bd] shadow-2xl"><Info size={15} className="text-gold" /> {mode === 'cash' ? 'Cash room selected · fees shown before entry' : 'Free Play selected · no stakes'}</div>}
     <main className="pb-24 md:ml-[236px] md:pb-8"><div className="mx-auto max-w-[1340px] px-4 py-6 md:px-8 md:py-8">{children}</div></main>
     <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-[#294237] bg-[#0d241d]/95 px-2 py-2 backdrop-blur-xl md:hidden">{navItems.slice(0, 5).map((item) => { const Icon = item.icon; const active = item.href === location; return <Link href={item.href} data-testid={`link-bottom-${item.label.toLowerCase()}`} className={`flex flex-1 flex-col items-center gap-1 py-1 text-[9px] font-bold uppercase tracking-wider ${active ? 'text-[#d6a944]' : 'text-[#718c7e]'}`} key={item.href}><Icon size={18} />{item.label}</Link>; })}</nav>
   </div>;
@@ -155,7 +160,7 @@ function Mission({ title, progress, done }: { title: string; progress: string; d
   return <div className="flex items-center gap-3 border-t border-[#345346] py-3 first:border-0 first:pt-0"><div className={`grid h-6 w-6 place-items-center rounded-full border ${done ? 'border-[#54c987] bg-[#23583f] text-[#69db9a]' : 'border-[#567568] text-transparent'}`}><Check size={13} /></div><div className="flex-1 text-xs font-semibold">{title}</div><span className={`font-mono-custom text-[10px] ${done ? 'text-[#69db9a]' : 'text-[#819a8d]'}`}>{progress}</span></div>;
 }
 
-function PlayPage({ mode, showToast, cashBalance }: { mode: Mode; showToast: (message: string) => void; cashBalance: number }) {
+function PlayPage({ mode, showToast, cashBalance, hasAccount, onRequestAccount }: { mode: Mode; showToast: (message: string) => void; cashBalance: number; hasAccount: boolean; onRequestAccount: () => void }) {
   const [tab, setTab] = useState<'quick' | 'rooms' | 'tournament'>('quick');
   const [difficulty, setDifficulty] = useState('Medium');
   const [roomCode, setRoomCode] = useState('');
@@ -163,9 +168,9 @@ function PlayPage({ mode, showToast, cashBalance }: { mode: Mode; showToast: (me
   const createRoom = () => { const code = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[secureInt(24)]).join(''); setRoomCreated(code); showToast(`Room ${code} is ready to share.`); };
   const joinRoom = () => roomCode.trim().length === 6 ? showToast(`Joined room ${roomCode.toUpperCase()}. Waiting on the table.`) : showToast('Enter the 6-character room code first.');
   return <div className="reveal"><PageTitle eyebrow="The playground" title="Choose your table." copy="Every mode is built for a clean match, whether you are learning the angles or chasing a payout." action={<WalletChip mode={mode} cashBalance={cashBalance} />} /><div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-[#29483a] bg-[#102a21] p-1 mobile-scroll"><button data-testid="tab-quick-play" onClick={() => setTab('quick')} className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-xs font-bold ${tab === 'quick' ? 'bg-[#d6a944] text-[#173229]' : 'text-[#91aa9c]'}`}>Quick play</button><button data-testid="tab-private-rooms" onClick={() => setTab('rooms')} className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-xs font-bold ${tab === 'rooms' ? 'bg-[#d6a944] text-[#173229]' : 'text-[#91aa9c]'}`}>Private room</button><button data-testid="tab-tournaments" onClick={() => setTab('tournament')} className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-xs font-bold ${tab === 'tournament' ? 'bg-[#d6a944] text-[#173229]' : 'text-[#91aa9c]'}`}>Async tournament</button></div>
-    {tab === 'quick' && <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]"><section className="panel rounded-2xl p-6 sm:p-8"><div className="mb-7 flex items-start justify-between"><div><div className="mb-2 text-[10px] uppercase tracking-[.22em] text-[#829a8d]">Solo table</div><h2 className="font-display text-2xl font-bold">Play the house.</h2><p className="mt-2 max-w-sm text-sm text-[#819a8d]">A patient opponent that teaches you the Nairobi line without giving it away.</p></div><div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#234a3b] text-[#d6a944]"><Gamepad2 size={23} /></div></div><div className="mb-7"><div className="mb-3 text-xs font-bold text-[#b9c9bd]">Choose the pace</div><div className="grid grid-cols-3 gap-2">{['Easy', 'Medium', 'Hard'].map((item) => <button data-testid={`button-difficulty-${item.toLowerCase()}`} key={item} onClick={() => setDifficulty(item)} className={`rounded-xl border px-3 py-4 text-left ${difficulty === item ? 'border-[#d6a944] bg-[#3a321e]' : 'border-[#355447] bg-[#142e25]'}`}><div className="mb-2 text-sm font-bold">{item}</div><div className="text-[10px] text-[#819a8d]">{item === 'Easy' ? 'Learn the lines' : item === 'Medium' ? 'Read the room' : 'No mercy tonight'}</div></button>)}</div></div><Link href="/game" data-testid="link-start-ai-game" className="btn-primary flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold">Start {difficulty} game <ArrowRight size={17} /></Link></section><section className="panel-soft rounded-2xl p-6"><div className="mb-4 flex items-center gap-2"><Users size={18} className="text-[#d6a944]" /><h2 className="font-display text-xl font-bold">Live pulse</h2></div><div className="mb-6 font-display text-4xl font-bold">1,847 <span className="font-sans text-sm font-medium text-[#819a8d]">players online</span></div><div className="space-y-3"><LiveMatch name="Wanjiku vs Otieno" stake="KSh 200" /><LiveMatch name="Kiptoo vs Muthoni" stake="KSh 50" /><LiveMatch name="Achieng vs Barasa" stake="Demo" /></div><Link href="/tournament" data-testid="link-browse-tournaments" className="mt-6 flex items-center gap-1 text-xs font-bold text-[#d6a944]">Browse tournament rooms <ArrowRight size={14} /></Link></section></div>}
+     {tab === 'quick' && <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]"><section className="panel rounded-2xl p-6 sm:p-8"><div className="mb-7 flex items-start justify-between"><div><div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[.22em] text-[#829a8d]"><Bot size={13} className="text-[#d6a944]" /> Free computer table</div><h2 className="font-display text-2xl font-bold">Play the house.</h2><p className="mt-2 max-w-sm text-sm text-[#819a8d]">No account, no entry fee, no pressure. Learn the angles against a patient opponent.</p></div><div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#234a3b] text-[#d6a944]"><Gamepad2 size={23} /></div></div><div className="mb-7"><div className="mb-3 text-xs font-bold text-[#b9c9bd]">Choose the pace</div><div className="grid grid-cols-3 gap-2">{['Easy', 'Medium', 'Hard'].map((item) => <button data-testid={`button-difficulty-${item.toLowerCase()}`} key={item} onClick={() => setDifficulty(item)} className={`rounded-xl border px-3 py-4 text-left ${difficulty === item ? 'border-[#d6a944] bg-[#3a321e]' : 'border-[#355447] bg-[#142e25]'}`}><div className="mb-2 text-sm font-bold">{item}</div><div className="text-[10px] text-[#819a8d]">{item === 'Easy' ? 'Learn the lines' : item === 'Medium' ? 'Read the room' : 'No mercy tonight'}</div></button>)}</div></div><Link href="/game" data-testid="link-start-ai-game" className="btn-primary flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold">Start {difficulty} game <ArrowRight size={17} /></Link></section><section className="panel-soft rounded-2xl p-6"><div className="mb-4 flex items-center gap-2"><Users size={18} className="text-[#d6a944]" /><h2 className="font-display text-xl font-bold">Live pulse</h2></div><div className="mb-6 font-display text-4xl font-bold">1,847 <span className="font-sans text-sm font-medium text-[#819a8d]">players online</span></div><div className="space-y-3"><LiveMatch name="Wanjiku vs Otieno" stake="KSh 200" /><LiveMatch name="Kiptoo vs Muthoni" stake="KSh 50" /><LiveMatch name="Achieng vs Barasa" stake="Free" /></div><Link href="/tournament" data-testid="link-browse-tournaments" className="mt-6 flex items-center gap-1 text-xs font-bold text-[#d6a944]">Browse tournaments <ArrowRight size={14} /></Link></section></div>}
     {tab === 'rooms' && <div className="grid gap-4 md:grid-cols-2"><section className="panel rounded-2xl p-6"><div className="mb-6 grid h-11 w-11 place-items-center rounded-xl bg-[#234a3b] text-[#d6a944]"><Plus size={21} /></div><h2 className="font-display text-2xl font-bold">Make a room</h2><p className="mt-2 max-w-sm text-sm text-[#819a8d]">Create a private table and invite your crew with one code.</p><button onClick={createRoom} data-testid="button-create-room" className="btn-primary mt-7 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold"><Plus size={16} /> Create room</button>{roomCreated && <div className="mt-4 flex items-center justify-between rounded-xl border border-[#d6a944]/40 bg-[#3b321e] p-3"><div><div className="text-[10px] uppercase tracking-wider text-[#bfa862]">Room code</div><div data-testid="text-room-code" className="font-mono-custom text-xl font-bold tracking-[.2em] text-[#f0d47b]">{roomCreated}</div></div><button data-testid="button-copy-room" onClick={() => { navigator.clipboard?.writeText(roomCreated); showToast('Room code copied.'); }} className="btn-quiet rounded-lg p-2"><Copy size={16} /></button></div>}</section><section className="panel-soft rounded-2xl p-6"><div className="mb-6 grid h-11 w-11 place-items-center rounded-xl bg-[#234a3b] text-[#d6a944]"><DoorOpen size={21} /></div><h2 className="font-display text-2xl font-bold">Join a room</h2><p className="mt-2 text-sm text-[#819a8d]">Got a code from a friend in the lounge?</p><input value={roomCode} onChange={(event) => setRoomCode(event.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6))} data-testid="input-room-code" placeholder="e.g. KIBERA" className="mt-7 w-full rounded-xl border border-[#3c5e4e] bg-[#0f281f] px-4 py-3 font-mono-custom text-sm tracking-[.18em] text-[#f0e7cf] placeholder:text-[#557164]" /><button onClick={joinRoom} data-testid="button-join-room" className="btn-quiet mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold">Join table <ArrowRight size={16} /></button></section></div>}
-    {tab === 'tournament' && <div className="panel rounded-2xl p-7"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[.2em] text-[#d6a944]"><span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[#4fd28a]" /> Entries open</div><h2 className="font-display text-2xl font-bold">Async. Competitive. Your clock.</h2><p className="mt-2 text-sm text-[#819a8d]">Play your round when you can. The bracket keeps moving.</p></div><Link href="/tournament" data-testid="link-enter-tournament" className="btn-primary flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold">View bracket <ArrowRight size={16} /></Link></div><div className="mt-8 grid gap-3 sm:grid-cols-3"><StatBlock label="Prize pool" value="KSh 12,500" /><StatBlock label="Players" value="8 / 8" /><StatBlock label="Next round" value="03:42:18" /></div></div>}
+     {tab === 'tournament' && <div className="panel rounded-2xl p-7"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[.2em] text-[#d6a944]"><span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[#4fd28a]" /> Free and cash brackets</div><h2 className="font-display text-2xl font-bold">Partners, tournaments, your clock.</h2><p className="mt-2 text-sm text-[#819a8d]">Join free brackets without an account. Cash brackets show the entry, {5}% house fee, and winner return before you commit.</p></div><Link href="/tournament" data-testid="link-enter-tournament" className="btn-primary flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold">View bracket <ArrowRight size={16} /></Link></div><div className="mt-8 grid gap-3 sm:grid-cols-3"><StatBlock label="Free prize pool" value="Glory + XP" /><StatBlock label="Players online" value="1,847" /><StatBlock label="Cash return" value="95% pool" /></div>{mode === 'cash' && !hasAccount && <button onClick={onRequestAccount} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-[#d6a944]/40 bg-[#3b321e] py-3 text-xs font-bold text-[#f0d37c]">Create an account to enter cash tables <ArrowRight size={15} /></button>}</div>}
   </div>;
 }
 function LiveMatch({ name, stake }: { name: string; stake: string }) { return <div className="flex items-center gap-3 border-b border-[#2e4a3d] pb-3"><span className="h-2 w-2 rounded-full bg-[#4fd28a]" /><span className="flex-1 text-xs font-semibold">{name}</span><span className="font-mono-custom text-[10px] text-[#819a8d]">{stake}</span></div>; }
@@ -359,6 +364,13 @@ function TournamentPage() {
 }
 
 function AppRouter() {
+  const [termsAccepted, setTermsAccepted] = useState(() => window.localStorage.getItem('nairobi-terms-v1') === 'accepted');
+  const [account, setAccount] = useState<PlayerAccount | null>(() => {
+    const stored = window.localStorage.getItem('nairobi-player-account');
+    if (!stored) return null;
+    try { return JSON.parse(stored) as PlayerAccount; } catch { return null; }
+  });
+  const [accountGateOpen, setAccountGateOpen] = useState(false);
   const [mode, setMode] = useState<Mode>('demo');
   const [cashBalance, setCashBalance] = useState(() => {
     const storedValue = window.localStorage.getItem('nairobi-cash-balance');
@@ -366,6 +378,24 @@ function AppRouter() {
     return Number.isFinite(stored) && stored >= 0 ? stored : 2450;
   });
   const { toast, showToast } = useToastMessage();
+  if (!termsAccepted) {
+    return <TermsGate onAccept={() => { window.localStorage.setItem('nairobi-terms-v1', 'accepted'); setTermsAccepted(true); }} />;
+  }
+  const requestAccount = () => setAccountGateOpen(true);
+  const handleModeChange = (next: Mode) => {
+    if (next === 'cash' && !account) {
+      requestAccount();
+      return;
+    }
+    setMode(next);
+  };
+  const handleAccountComplete = (nextAccount: PlayerAccount) => {
+    window.localStorage.setItem('nairobi-player-account', JSON.stringify(nextAccount));
+    setAccount(nextAccount);
+    setAccountGateOpen(false);
+    setMode('cash');
+    showToast(`Welcome, ${nextAccount.displayName}. Cash tables are ready for review.`);
+  };
   const handleCashDeposit = (amount: number) => {
     setCashBalance((current) => {
       const next = current + amount;
@@ -373,7 +403,7 @@ function AppRouter() {
       return next;
     });
   };
-  return <Shell mode={mode} onModeChange={setMode}><Switch><Route path="/" component={() => <Home mode={mode} showToast={showToast} cashBalance={cashBalance} />} /><Route path="/dashboard" component={() => <Home mode={mode} showToast={showToast} cashBalance={cashBalance} />} /><Route path="/play" component={() => <PlayPage mode={mode} showToast={showToast} cashBalance={cashBalance} />} /><Route path="/game" component={() => <GamePage mode={mode} showToast={showToast} />} /><Route path="/wallet" component={() => <WalletPage mode={mode} showToast={showToast} cashBalance={cashBalance} onCashDeposit={handleCashDeposit} />} /><Route path="/profile" component={() => <ProfilePage showToast={showToast} />} /><Route path="/tournament" component={TournamentPage} /><Route component={NotFound} /></Switch><Toast message={toast} /></Shell>;
+  return <><Shell mode={mode} onModeChange={handleModeChange} hasAccount={Boolean(account)} onRequestAccount={requestAccount}><Switch><Route path="/" component={() => <Home mode={mode} showToast={showToast} cashBalance={cashBalance} />} /><Route path="/dashboard" component={() => <Home mode={mode} showToast={showToast} cashBalance={cashBalance} />} /><Route path="/play" component={() => <PlayPage mode={mode} showToast={showToast} cashBalance={cashBalance} hasAccount={Boolean(account)} onRequestAccount={requestAccount} />} /><Route path="/game" component={() => <GamePage mode={mode} showToast={showToast} />} /><Route path="/wallet" component={() => <WalletPage mode={mode} showToast={showToast} cashBalance={cashBalance} onCashDeposit={handleCashDeposit} hasAccount={Boolean(account)} onRequestAccount={requestAccount} />} /><Route path="/profile" component={() => <ProfilePage showToast={showToast} />} /><Route path="/tournament" component={TournamentPage} /><Route path="/admin" component={AdminPage} /><Route component={NotFound} /></Switch><Toast message={toast} /></Shell>{accountGateOpen && <AccountGate onComplete={handleAccountComplete} onClose={() => setAccountGateOpen(false)} />}</>;
 }
 
 function Router() {

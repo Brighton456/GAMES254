@@ -1,0 +1,19 @@
+{
+  "name": "Nairobi Checkers",
+  "short_name": "Nairobi Checkers",
+  "description": "A premium Kenyan checkers lounge with real BrightPay M-Pesa deposits.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07150f",
+  "theme_color": "#0c211b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

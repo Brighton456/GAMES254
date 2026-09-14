@@ -1,0 +1,25 @@
+Awesome work on the foundational layout. Let's now evolutionize the project by layering on premium visual polish, audio synthesis, deep gamification, and advanced UX features directly into the existing codebase. Do not replace the core states; append and integrate these 5 key enhancement packages:
+
+1. Visual Realism & Nairobi-Inspired Styling:
+- Convert standard container styles to a high-end glassmorphic finish (apply backdrop-blur and 1px semi-transparent gold or neon borders).
+- Implement a dynamic background system that mirrors the late-night Nairobi city lights using deep navy colors and neon gradients. High-value stake selectors (like KSh 500) must pulse with an animated neon gold plasma aura. Add a soft particle dust drifting effect behind active game canvases.
+
+2. Web Audio API Procedural Audio Pack:
+- Set up a native Web Audio API controller to synthetically generate all audio tones on the fly via code (no external URLs).
+- Generate a satisfying wood-snap sound for piece clicks, a double-tone climbing frequency for successful token jumps, a quick low-frequency laser zap for errors/invalid moves, a rich tape-rewind synth effect for the undo utility, and an ascending octave scale for consecutive win streaks.
+- Add an audio low-pass filter utility that shifts the background ambient music into a heavy, bass-driven heartbeat pulse when tournament countdown clocks enter their final 10 seconds.
+
+3. "King" Animations & Post-Game Match Replay Engine:
+- When a piece is crowned a King, fire an explosive canvas particle animation on that cell. The piece must transform into a distinct asset that emits moving visual neon trail lines.
+- Build the Post-Game Match Replay feature: At the conclusion of a match, save the sequential game state array into a state log. Present a "Review Match" action that opens a mini theater-mode overlay, enabling players to use an interactive timeline slider and forward/backward buttons to review every move of the match step-by-step.
+
+4. M-Pesa Validation Hooks & Safaricom SMS Hype:
+- Refine the wallet drawer inputs to sanitize phone number prefixes dynamically (+254, 07, 01) into standard formats.
+- When an M-Pesa withdrawal executes successfully, trigger a simulated mobile notification banner styled precisely like a real Safaricom M-Pesa SMS transaction alert (e.g., "MPESA: QHA719XJ4K Confirmed...").
+- In Demo Mode only, add an "Undo Move" tool; explicitly hide this element during Real Cash play. Connect a 5-second "Double or Nothing" countdown banner immediately after a win view to let players quickly re-enter the match queue with their earnings.
+
+5. Auto-Load Fortune Wheel & Complete Profile Analytics:
+- Add a script that automatically pops open the "Daily Fortune Wheel" modal instantly upon the application loading for the first time in a session, featuring realistic spin deceleration physics and canvas confetti.
+- Build the "My Profile" tab detailing complete player statistics: track current titles (e.g., "Level 5 - Checkers Governor"), XP progress bars, lifetime career win/loss metrics, and cumulative M-Pesa cash-outs.
+
+Keep the code cleanly isolated inside your components directory and verify that all current states remain intact during compilation.

@@ -1,0 +1,25 @@
+now that the app is real, i want us to impliment additional features that will highly promote fairness while locking our own profits as site owners. Think os such,,,, also ensure u have added either play by computer or partners/tounaments.  Then the site shouldn't fill like a website everytime a user opens, let it be that only at 1st, but after accepting terms and conditions. let the user open a functional hightech menu directly, with enough animations/options. Then don't make it too hard to use, and also don't underate it. 
+
+Then let it be an open-source non authenticated checkers game, where users can find it a completely free game/we will intergrate offline mode later..... then now there should be ads for play with money 💵 or something, where after trying to opt in, they will be required to create an account and accept to terms and conditions. The others can also create an account for history if they wish. but make it look like a real game. 
+highly improve the game area-make it feel high and live, not just boxes, and optional user settings to set the number of rows/columns. and preferences on some aspects eg. how the king should fly - think here critically so that u can manage our comp. bot systems, multi user play/tornaments.
+
+Then also add the system admin dashboard, where an admin should see all the statics, including the profits/losses/etc and settings many other things.
+
+Then add some fees on winning users-users plays. so that the platform doesn't eat nothing.
+
+Withdraw — POST /endpoint-withdraw
+# Server-side only! Sign request with HMAC-SHA256.
+TS=$(date +%s000)
+BODY='{"amount":100,"phone_number":"0712345678","external_reference":"WD-1"}'
+SIG=$(printf "%s.%s" "$TS" "$BODY" | openssl dgst -sha256 -hmac "API KEY HERE" -hex | awk '{print $2}')
+
+curl -X POST "https://lqlpgghortuhdxnfqavj.supabase.co/functions/v1/endpoint-withdraw" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: API_KEY_HERE" \
+  -H "x-timestamp: $TS" \
+  -H "x-signature: $SIG" \
+  -d "$BODY"
+
+  i HAVE THE API KEY/SIGHNING SECRET.
+
+  

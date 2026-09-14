@@ -79,9 +79,10 @@
 }
 
 * { box-sizing: border-box; }
-html { background: hsl(var(--background)); }
-body { margin: 0; min-width: 320px; background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: var(--app-font-sans); }
+html { background: hsl(var(--background)); touch-action: manipulation; overscroll-behavior: none; }
+body { margin: 0; min-width: 320px; background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: var(--app-font-sans); overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
 button, input, select { font: inherit; }
+button, a, input { touch-action: manipulation; }
 button { cursor: pointer; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid hsl(var(--accent)); outline-offset: 3px; }
 

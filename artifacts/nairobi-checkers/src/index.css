@@ -113,3 +113,135 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .mobile-scroll { scrollbar-width: none; }
   .mobile-scroll::-webkit-scrollbar { display: none; }
 }
+
+/* ==========================================================================
+   Games254 glassmorphic layer — Nairobi night-city neon system
+   ========================================================================== */
+
+/* Deep navy base with neon city gradients (late-night Nairobi skyline). */
+.app-shell.city {
+  background:
+    radial-gradient(circle at 82% -10%, rgba(214, 169, 68, .16), transparent 32rem),
+    radial-gradient(circle at 8% 24%, rgba(46, 134, 193, .12), transparent 34rem),
+    radial-gradient(circle at 0% 62%, rgba(31, 141, 91, .16), transparent 30rem),
+    radial-gradient(circle at 92% 88%, rgba(147, 51, 234, .10), transparent 30rem),
+    linear-gradient(168deg, #071a2b 0%, #081f22 42%, #0a1f1a 100%);
+}
+
+/* Animated city-lights sweep — slow aurora drifting behind everything. */
+.city-lights { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.city-lights::before,
+.city-lights::after {
+  content: '';
+  position: absolute;
+  width: 60vmax; height: 60vmax;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: .16;
+}
+.city-lights::before {
+  top: -18vmax; right: -12vmax;
+  background: conic-gradient(from 90deg, #d6a944, #e57ad1, #2e86c1, #d6a944);
+  animation: city-drift 26s ease-in-out infinite alternate;
+}
+.city-lights::after {
+  bottom: -22vmax; left: -14vmax;
+  background: conic-gradient(from 220deg, #1f8d5b, #2e86c1, #d6a944, #1f8d5b);
+  animation: city-drift 34s ease-in-out infinite alternate-reverse;
+}
+@keyframes city-drift {
+  from { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  to { transform: translate3d(-6vmax, 4vmax, 0) rotate(24deg) scale(1.12); }
+}
+
+/* High-end glassmorphic panels: blur + 1px semi-transparent gold borders. */
+.glass-panel {
+  background: linear-gradient(148deg, rgba(31, 62, 55, .55), rgba(12, 27, 34, .66));
+  border: 1px solid rgba(214, 169, 68, .30);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, .38), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+.glass-panel-soft {
+  background: rgba(20, 42, 38, .42);
+  border: 1px solid rgba(214, 169, 68, .16);
+  backdrop-filter: blur(12px) saturate(1.15);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .3);
+}
+.glass-rail {
+  background: rgba(16, 35, 30, .5);
+  border: 1px solid rgba(214, 169, 68, .22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Game board frame — neon gold rim on dark wood. */
+.board-frame {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, .5),
+    0 0 0 1px rgba(214, 169, 68, .55),
+    0 0 34px rgba(214, 169, 68, .18);
+}
+
+/* High-value stake selectors (KSh 500+): pulsing neon gold plasma aura. */
+.stake-plasma {
+  border-color: rgba(214, 169, 68, .85) !important;
+  animation: stake-plasma 1.9s ease-in-out infinite;
+}
+@keyframes stake-plasma {
+  0%, 100% { box-shadow: 0 0 10px rgba(214, 169, 68, .35), 0 0 24px rgba(214, 169, 68, .18), inset 0 0 8px rgba(214, 169, 68, .12); }
+  50% { box-shadow: 0 0 20px rgba(244, 214, 120, .65), 0 0 46px rgba(214, 169, 68, .38), inset 0 0 14px rgba(244, 214, 120, .22); }
+}
+
+/* Kinged pieces — moving neon trail shimmer. */
+.king-glow {
+  animation: king-glow 2.4s ease-in-out infinite;
+}
+@keyframes king-glow {
+  0%, 100% { box-shadow: 0 5px 0 rgba(0, 0, 0, .28), 0 0 10px rgba(244, 214, 120, .45), 0 0 22px rgba(214, 169, 68, .28); }
+  50% { box-shadow: 0 5px 0 rgba(0, 0, 0, .28), 0 0 18px rgba(244, 214, 120, .8), 0 0 40px rgba(214, 169, 68, .5); }
+}
+
+/* Double-or-nothing urgency banner. */
+.double-banner { animation: double-pulse 1s ease-in-out infinite; }
+@keyframes double-pulse {
+  0%, 100% { box-shadow: 0 0 24px rgba(214, 169, 68, .18); }
+  50% { box-shadow: 0 0 44px rgba(214, 169, 68, .45); }
+}
+
+/* Replay timeline slider. */
+.replay-slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 16px; width: 16px;
+  border-radius: 50%;
+  background: #d6a944;
+  border: 2px solid #f4d678;
+  box-shadow: 0 0 12px rgba(214, 169, 68, .6);
+  cursor: pointer;
+}
+.replay-slider::-moz-range-thumb {
+  height: 16px; width: 16px;
+  border-radius: 50%;
+  background: #d6a944;
+  border: 2px solid #f4d678;
+  box-shadow: 0 0 12px rgba(214, 169, 68, .6);
+  cursor: pointer;
+}
+
+/* Respect reduced-motion preferences across every new animation. */
+@media (prefers-reduced-motion: reduce) {
+  .stake-plasma,
+  .king-glow,
+  .double-banner,
+  .reveal,
+  .wheel-spin,
+  .pulse-dot,
+  .city-lights::before,
+  .city-lights::after { animation: none !important; }
+  .city-lights::before,
+  .city-lights::after { opacity: .08; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}

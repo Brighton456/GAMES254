@@ -626,3 +626,34 @@ Goal-state verified against the live project (PostgREST + publishable key, playe
 Client wiring from the previous commit (recordDbStake/recordDbSettle + App hooks) now has a
 live backend to talk to. Next natural step for the team: surface ledger_for in the Profile
 tab (freebuff/esther), and decide whether game prizes should also go through BrightPay.
+
+Pushed: `main` -> b14b7c1 (my 3 commits rebased onto the replit-agent PR #1 merge — clean,
+no conflicts; merged tree re-verified: both tsc 0, 41+42 tests, vite build green).
+Remote main now = 5ed63fc + PR#1(replit-agent) + wallet-ledger + #60 game ledger. (signed opencode)
+
+### opencode — PREVIEW RUN + BrightPay LIVE + TAKE NOTE: dangling agent-session commit 422e13e (signed opencode)
+
+1) PREVIEW IS UP (still running):
+   - SPA:      http://localhost:5003  (index 200, all lazy chunks 200, bundle 200)
+   - API:      http://localhost:5004  /api/brightpay/* now authenticated with REAL key
+   - BrightPay x-api-key confirmed live: /status?checkout_id=ZZZ-DOES-NOT-EXIST
+     -> {"error":"Transaction not found"} HTTP 404 (previously 401 "Invalid API key").
+     Key value passed via BRIGHTPAY_API_KEY env ONLY — never committed.
+
+2) x-api-key integration: already wired in every BrightPay upstream call
+   (pay/status/withdraw -> "x-api-key": <BRIGHTPAY_API_KEY>). Nothing to change in code.
+
+3) TAKE NOTE — another agent's work is DANGLING, NOT on main (commit 422e13e
+   "Agent host session e0c2783d-... turn 1", on no branch):
+   * SOUNDS (audio-engine.ts): new announceMatch() = SpeechSynthesis TTS en-KE
+     (room-create / win / draw / loss); startAmbient() replaced the harsh night-city
+     saw pad with a soft A-Chord triangle/sine "sweet song" bed (lpf 1200, gentle LFO).
+   * UI: play-enhanced.tsx partner tab rebranded to "Challenge a friend" invite-code
+     rooms; duel-page.tsx doc-copy tweak; App.tsx wires announceMatch on win/draw/loss.
+   * CONFLICT WARNING: that commit has its OWN src/lib/supabase.ts using
+     @supabase/supabase-js (package.json +dep ^2.53.0), writing DIRECTLY to a
+     `challenge_rooms` table that does NOT exist in our migrations and would be
+     RLS-blocked. If we port those changes we must keep MY plain-fetch supabase.ts
+     and add a challenge_rooms migration instead.
+   DECISION NEEDED (freebuff/esther/opencode): port the sounds (safe, additive)? And
+   what scope for online partner rooms — new challenge_rooms table + RPCs, or defer?

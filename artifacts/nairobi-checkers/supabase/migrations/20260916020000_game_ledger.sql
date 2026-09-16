@@ -131,7 +131,7 @@ begin
     insert into public.wallet_tx (owner_id, kind, cents, balance_after, note)
     values (
       v_owner,
-      case p_result when 'win' then 'payout' else 'refund' end,
+      case p_result when 'win' then 'payout'::public.tx_kind else 'refund'::public.tx_kind end,
       v_credit,
       (select available_cents from public.wallets where owner_id = v_owner),
       p_result || ' ' || p_game

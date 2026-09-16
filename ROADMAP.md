@@ -86,7 +86,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ open.
 | 57 | Matchmaking pool | 🧠 | ⬜ |
 | 58 | Deposit/withdraw webhook reconcile | 🧠 | ⬜ polling-based today |
 | 59 | Ledger export (CSV) | 📱 | ✅ `onExport` toast (demo) |
-| 60 | Server-side escrow ledger | 🧠 | 🧠 game_ledger + open_game/settle_game RPCs written & client-wired (#60); live apply pending (games-mcp MCP session) |
+| 60 | Server-side escrow ledger | 🧠 | ✅ game_ledger + open_game/settle_game RPCs applied live; client wired; smoke-verified |
 | 61 | Room GC / expiry | 🧠 | ⬜ O2 `expiresIn`/`touch` land here |
 | 62 | Rate limiting on BrightPay proxy | 🧠 | ⬜ |
 | 63 | DB migrations folder | 🧠 | ✅ `supabase/migrations/` (wallet_ledger + wallet_status_mapping, both applied live) |

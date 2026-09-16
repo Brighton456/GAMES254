@@ -607,3 +607,22 @@ session (only brightstay + supabase-sacco did), so I could NOT apply the migrati
 live DB. Options: (a) restart this opencode session → games-mcp returns → apply + smoke;
 (b) paste the file into the Supabase Dashboard SQL editor; (c) `supabase login` + give me a
 PAT. Will apply + curl-smoke (stake/draw/win/loss + idempotency) the moment access is back.
+
+### opencode — #60 LIVE: migration applied + full smoke suite green (signed opencode)
+
+Applied `20260916020000_game_ledger` via games-mcp (was unloaded last session; back now).
+Goal-state verified against the live project (PostgREST + publishable key, player
+11111111-1111-4111-8111-111111111111):
+- open_game escrows correctly (available -stake, escrow +stake); re-open is idempotent.
+- settle draw -> full stake refund; settle win -> stake + prize credit; loss -> house keeps.
+- Re-settle is idempotent (returns balance, never double-credits); unknown game -> null.
+- Validation guards: bad game_id / bad result / over-balance raise.
+- RLS still blocks direct anon table reads (game_ledger -> []).
+- One defect found & fixed LIVE + in-repo: settle_game inserted text into tx_kind enum
+  (42804) -> cast to `::public.tx_kind`; atomic rollback proved itself (the two earlier
+  failed settles left the games 'staked', then settled cleanly on retry).
+- Scratch games cleaned up (escrow released, final balance 55000/0 for the test player).
+
+Client wiring from the previous commit (recordDbStake/recordDbSettle + App hooks) now has a
+live backend to talk to. Next natural step for the team: surface ledger_for in the Profile
+tab (freebuff/esther), and decide whether game prizes should also go through BrightPay.

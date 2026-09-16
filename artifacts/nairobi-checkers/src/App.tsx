@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -20,7 +20,7 @@ import {
 } from '@/components/game/player-store';
 import { loadSettings, saveSettings, type Settings } from '@/components/game/settings-store';
 import { startAmbient, stopAmbient, playStreak, setAudioEnabled } from '@/components/game/audio-engine';
-import { ensureDbProfile, fetchDbBalanceKsh, isDbConfigured } from '@/lib/supabase';
+import { ensureDbProfile, fetchDbBalanceKsh, isDbConfigured, recordDbSettle, recordDbStake } from '@/lib/supabase';
 
 // Route-level code splitting: heavy pages load only when visited.
 const WalletPage = lazy(async () => ({ default: (await import('@/pages/wallet-page')).WalletPage }));
@@ -81,6 +81,11 @@ function AppRouter() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [career, setCareer] = useState<Career>(() => loadCareer());
   const [activeGame, setActiveGame] = useState<GameLaunch | null>(null);
+  // Server ledger key for the game in flight (#60). Minted at launch, consumed
+  // at finish, cleared on exit; never persists across games.
+  const activeGameIdRef = useRef<string | null>(null);
+  const mintGameId = () =>
+    `g-${Date.now().toString(36)}-${secureInt(999999).toString(36)}${secureInt(999999).toString(36)}`;
   const [fortuneOpen, setFortuneOpen] = useState(false);
   const [fortuneFired, setFortuneFired] = useState(false);
   const [confettiKey, setConfettiKey] = useState(0);
@@ -178,6 +183,19 @@ function AppRouter() {
         window.localStorage.setItem('nairobi-cash-balance', String(next));
         return next;
       });
+      // Async mirror onto the ledger (no-op when the DB is unconfigured).
+      const gameId = mintGameId();
+      activeGameIdRef.current = gameId;
+      if (isDbConfigured()) {
+        void recordDbStake(gameId, launch.stake)
+          .then((balance) => {
+            if (typeof balance === 'number') {
+              setCashBalance(balance);
+              window.localStorage.setItem('nairobi-cash-balance', String(balance));
+            }
+          })
+          .catch(() => {});
+      }
     }
     setActiveGame(launch);
   };
@@ -243,6 +261,24 @@ function AppRouter() {
         return next;
       });
     }
+    // Settle the game on the ledger (no-op when the DB is unconfigured);
+    // adopting the returned balance keeps reloads consistent with server truth.
+    if (isDbConfigured() && kind === 'cash' && stake > 0 && activeGameIdRef.current) {
+      const gameId = activeGameIdRef.current;
+      const credit = result.winner === 'gold' ? effective.prize : result.winner === null ? stake : 0;
+      void recordDbSettle(
+        gameId,
+        result.winner === 'gold' ? 'win' : result.winner === null ? 'draw' : 'loss',
+        credit,
+      )
+        .then((balance) => {
+          if (typeof balance === 'number' && balance >= 0) {
+            setCashBalance(balance);
+            window.localStorage.setItem('nairobi-cash-balance', String(balance));
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   // Double-or-nothing 5-second countdown.
@@ -272,6 +308,19 @@ function AppRouter() {
       });
     }
     setActiveGame({ kind: 'cash', stake: doubled });
+    // Fresh game id for the doubled leg on the ledger.
+    const gameId = mintGameId();
+    activeGameIdRef.current = gameId;
+    if (isDbConfigured()) {
+      void recordDbStake(gameId, doubled)
+        .then((balance) => {
+          if (typeof balance === 'number') {
+            setCashBalance(balance);
+            window.localStorage.setItem('nairobi-cash-balance', String(balance));
+          }
+        })
+        .catch(() => {});
+    }
     showToast(`Doubled down at ${money(doubled)}. Good luck.`);
   };
 
@@ -297,7 +346,7 @@ function AppRouter() {
           mode={mode}
           settings={settings}
           feePercent={settings.houseFeePercent}
-          onExit={() => setActiveGame(null)}
+          onExit={() => { activeGameIdRef.current = null; setActiveGame(null); }}
           onFinish={handleFinish}
           showToast={showToast}
         />

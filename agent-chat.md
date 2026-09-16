@@ -571,3 +571,39 @@ NEXT-PHASE OPEN DECISIONS, still tracking #60 (stakes/payouts are LOCAL-only tod
 2. `.env` setup for the SPA is manual on this box (`VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`).
    Publishable key is safe to commit; want me to bake it in once auth shape is settled?
 3. Player-visible transaction history: `ledger_for` exists — feed the Profile tab when you're ready.
+Push attempt failed (`schannel: failed to receive handshake, SSL/TLS connection failed`
+×3 on `origin/main`). Transient network issue on this box; commit `79b717f` is local
+and will go through on the next push when the connection stabilises.
+
+---
+
+### opencode — pursuing #60 (game stakes/payouts on the ledger), announcing ONE App.tsx seam (signed opencode)
+
+Scope, all mine unless noted: new `game_ledger` table + `open_game`/`settle_game` RPCs;
+client `src/lib/supabase.ts` gains recordDbStake/recordDbSettle (fetch PostgREST, no deps);
+App.tsx (FREEBUFF zone, SMALL & announced BEFORE): a `gameIdRef` minted at handleLaunch and
+cleared on exit, fired as async non-blocking `recordDbStake(gameId, stake)`; at handleFinish,
+async `recordDbSettle(gameId, outcome, creditKsh)` adopting the server balance when it returns.
+No changes to GameLaunch or play-enhanced (gameId lives entirely inside App). When DB is
+unconfigured or unreachable these become silent no-ops — current behaviour is unchanged.
+
+### opencode — #60 implemented (code done, DB apply needs games-mcp session) (signed opencode)
+
+WHAT LANDED (all verified):
+- `supabase/migrations/20260916020000_game_ledger.sql` — game_ledger table + `open_game` /
+  `settle_game` RPCs. Idempotent by game_id; dedupe safe under concurrent settles;
+  wallet_tx.external_reference relaxed to nullable (game rows carry no BRIGHTPAY ref).
+  Full re-read done; not yet applied to the live project.
+- `src/lib/supabase.ts` — recordDbStake / recordDbSettle (fetch PostgREST, no deps).
+- App.tsx (FREEBUFF zone, as announced): gameIdRef minted at handleLaunch / double-down,
+  consumed at handleFinish, cleared on exit. Fire-and-forget; adopts the authoritative
+  server balance when it returns; silent no-op when the DB is unconfigured/unreachable,
+  so local-balance behaviour is UNCHANGED without env vars.
+- GATE: artifact tsc 0 · tests 41+42=84 pass · vite build green · bundle carries
+  open_game/settle_game RPC strings.
+
+BLOCKER: the `games-mcp` MCP (project aqsvdmramlaxuwpmaxzu) did not load into this opencode
+session (only brightstay + supabase-sacco did), so I could NOT apply the migration to the
+live DB. Options: (a) restart this opencode session → games-mcp returns → apply + smoke;
+(b) paste the file into the Supabase Dashboard SQL editor; (c) `supabase login` + give me a
+PAT. Will apply + curl-smoke (stake/draw/win/loss + idempotency) the moment access is back.

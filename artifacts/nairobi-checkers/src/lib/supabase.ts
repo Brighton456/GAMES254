@@ -79,3 +79,41 @@ export async function fetchDbLedger(): Promise<DbLedgerRow[]> {
   const rows = await rpc<DbLedgerRow[]>("ledger_for", { p_owner: getPlayerId() });
   return Array.isArray(rows) ? rows : [];
 }
+
+/**
+ * Cash-game escrow (#60). Mirrors the client's settlement rules on the server:
+ * open escrows the stake (deduplicated by game_id), settle credits on
+ * win/draw/loss exactly once and returns the authoritative balance in KSh.
+ * Returns null when the DB is unconfigured/unreachable so callers can fall
+ * back to the existing local-balance behaviour.
+ */
+function numericResult(value: unknown): number | null {
+  const v = Array.isArray(value) ? value[0] : value;
+  return typeof v === "number" ? v : null;
+}
+
+export async function recordDbStake(gameId: string, stakeKsh: number): Promise<number | null> {
+  const cents = Math.round(stakeKsh * 100);
+  if (cents <= 0) return null;
+  const value = await rpc("open_game", {
+    p_game: gameId,
+    p_owner: getPlayerId(),
+    p_stake_cents: cents,
+  });
+  const balance = numericResult(value);
+  return balance === null ? null : balance / 100;
+}
+
+export async function recordDbSettle(
+  gameId: string,
+  result: "win" | "loss" | "draw",
+  creditKsh: number,
+): Promise<number | null> {
+  const value = await rpc("settle_game", {
+    p_game: gameId,
+    p_result: result,
+    p_credit_cents: Math.round(creditKsh * 100),
+  });
+  const balance = numericResult(value);
+  return balance === null ? null : balance / 100;
+}

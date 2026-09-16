@@ -1,5 +1,14 @@
 import { createHmac } from "node:crypto";
 import { Router, type IRouter } from "express";
+import {
+  balanceFor,
+  ensureProfile,
+  isDbConfigured,
+  parsePlayerId,
+  recordCompletedByCheckout,
+  recordPending,
+  recordWithdraw,
+} from "../lib/supabaseDb";
 
 const router: IRouter = Router();
 
@@ -85,6 +94,17 @@ router.post("/brightpay/pay", async (req, res) => {
     });
     const payload = await readJson(response);
 
+    // Record the pending intent in the ledger so /status can credit exactly once.
+    const ownerId = parsePlayerId(req.headers["x-player-id"]);
+    if (isDbConfigured() && ownerId) {
+      const checkoutId =
+        typeof payload.checkout_id === "string" ? payload.checkout_id : undefined;
+      await ensureProfile(ownerId).catch(() => {});
+      await recordPending(ownerId, "deposit", externalReference, amount * 100, checkoutId).catch(
+        () => {},
+      );
+    }
+
     if (!response.ok || payload.success === false) {
       req.log.warn(
         { status: response.status, externalReference },
@@ -146,6 +166,26 @@ router.get("/brightpay/status", async (req, res) => {
       });
     }
 
+    // Credit the wallet exactly once when BrightPay reports COMPLETED.
+    const ownerId = parsePlayerId(req.headers["x-player-id"]);
+    if (
+      isDbConfigured() &&
+      ownerId &&
+      String(payload.status ?? "").toUpperCase() === "COMPLETED"
+    ) {
+      const receipt =
+        typeof payload.mpesa_receipt === "string" ? payload.mpesa_receipt : undefined;
+      const balance = await recordCompletedByCheckout(checkoutId, receipt).catch(
+        () => null,
+      );
+      if (balance !== null && balance !== undefined) {
+        (payload as Record<string, unknown>).wallet = {
+          owner_id: ownerId,
+          available_cents: balance,
+        };
+      }
+    }
+
     return res.status(200).json(payload);
   } catch (error) {
     req.log.error({ err: error }, "BrightPay status request failed");
@@ -199,6 +239,17 @@ router.post("/brightpay/withdraw", async (req, res) => {
     .update(`${timestamp}.${body}`)
     .digest("hex");
 
+  // The DB wallet is the authority: refuse to queue a withdrawal the ledger
+  // can't cover, before touching BrightPay.
+  const ownerId = parsePlayerId(req.headers["x-player-id"]);
+  if (isDbConfigured() && ownerId) {
+    await ensureProfile(ownerId).catch(() => {});
+    const balance = await balanceFor(ownerId).catch(() => null);
+    if (balance !== null && balance.availableCents < amount * 100) {
+      return res.status(400).json({ error: "Withdrawal exceeds your account balance." });
+    }
+  }
+
   try {
     const response = await fetch(WITHDRAWAL_ENDPOINT, {
       method: "POST",
@@ -225,7 +276,20 @@ router.post("/brightpay/withdraw", async (req, res) => {
               : "BrightPay could not start the withdrawal.",
       });
     }
-    return res.status(200).json(payload);
+
+    // Record the queued withdrawal against the ledger after BrightPay accepts.
+    let walletPayload: object | undefined;
+    if (isDbConfigured() && ownerId) {
+      const balance = await recordWithdraw(ownerId, externalReference, amount * 100).catch(
+        () => null,
+      );
+      if (balance !== null && balance !== undefined) {
+        walletPayload = { owner_id: ownerId, available_cents: balance };
+      }
+    }
+    return res.status(200).json(
+      walletPayload ? { ...payload, wallet: walletPayload } : payload,
+    );
   } catch (error) {
     req.log.error({ err: error }, "BrightPay withdrawal request failed");
     return res.status(502).json({

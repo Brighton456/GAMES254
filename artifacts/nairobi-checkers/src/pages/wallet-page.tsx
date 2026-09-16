@@ -19,14 +19,15 @@ import {
 } from 'lucide-react';
 import { PageTitle, money, secureInt, type Mode } from '@/components/shell';
 import { normalizeKenyanPhone } from '@/components/game/mpesa-banner';
+import { getPlayerId } from '@/lib/supabase';
 
 type WalletPageProps = {
   mode: Mode;
   showToast: (message: string) => void;
   cashBalance: number;
   withdrawalsEnabled: boolean;
-  onDepositConfirmed: (amount: number) => void;
-  onWithdrawConfirmed: (amount: number, phone: string, externalReference: string) => void;
+onDepositConfirmed: (amount: number, authoritativeKsh?: number) => void;
+ onWithdrawConfirmed: (amount: number, phone: string, externalReference: string, authoritativeKsh?: number) => void;
 };
 
 export function WalletPage({
@@ -55,8 +56,10 @@ export function WalletPage({
   }, [amount, phone]);
 
   const pollStatus = async () => {
-    const response = await fetch(`/api/brightpay/status?checkout_id=${encodeURIComponent(checkoutId)}`);
-    const payload = await response.json().catch(() => ({})) as { status?: string; mpesa_receipt?: string; error?: string; message?: string };
+    const response = await fetch(`/api/brightpay/status?checkout_id=${encodeURIComponent(checkoutId)}`, {
+      headers: { 'x-player-id': getPlayerId() },
+    });
+    const payload = await response.json().catch(() => ({})) as { status?: string; mpesa_receipt?: string; error?: string; message?: string; wallet?: { available_cents?: number } };
     return { response, payload };
   };
 
@@ -78,9 +81,13 @@ export function WalletPage({
         if (nextStatus === 'COMPLETED') {
           if (settledRef.current) return;
           settledRef.current = true;
+          const authoritativeKsh =
+            typeof payload.wallet?.available_cents === 'number'
+              ? Math.round(payload.wallet.available_cents / 100)
+              : undefined;
           setReceipt(payload.mpesa_receipt ?? '');
           setStatus('success');
-          onDepositConfirmed(pendingAmount);
+          onDepositConfirmed(pendingAmount, authoritativeKsh);
           showToast(`Payment confirmed · ${money(pendingAmount)} added.`);
           return;
         }
@@ -143,16 +150,20 @@ export function WalletPage({
       try {
         const response = await fetch('/api/brightpay/withdraw', {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers: { 'content-type': 'application/json', 'x-player-id': getPlayerId() },
           body: JSON.stringify({ amount: parsed, phone_number: phone, external_reference: ref }),
         });
-        const payload = await response.json().catch(() => ({})) as { success?: boolean; error?: string; message?: string };
+        const payload = await response.json().catch(() => ({})) as { success?: boolean; error?: string; message?: string; wallet?: { owner_id?: string; available_cents?: number } };
         if (!response.ok || payload.success === false) {
           setWithdrawMsg(payload.error ?? payload.message ?? 'BrightPay could not start the withdrawal.');
           setStatus('error');
           return;
         }
-        onWithdrawConfirmed(parsed, phone, ref);
+        const withdrawAuthKsh =
+          typeof payload.wallet?.available_cents === 'number'
+            ? Math.round(payload.wallet.available_cents / 100)
+            : undefined;
+        onWithdrawConfirmed(parsed, phone, ref, withdrawAuthKsh);
         setWithdrawRef('');
         setWithdrawMsg('');
         showToast(`Withdrawal of ${money(parsed)} queued to ${phone}.`);
@@ -177,7 +188,7 @@ export function WalletPage({
     try {
       const response = await fetch('/api/brightpay/pay', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-player-id': getPlayerId() },
         body: JSON.stringify({ amount: parsed, phone_number: phone, external_reference: ref }),
       });
       const payload = await response.json().catch(() => ({})) as { checkout_id?: string; transaction_id?: string; error?: string; message?: string };

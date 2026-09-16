@@ -77,8 +77,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ open.
 
 | # | Gap | Owner | Status |
 |---|---|---|---|
-| 51 | Supabase project wiring | 🧠 | 🧠 backend seam exists (BrightPay edge functions) |
-| 52 | User accounts persisted | 🧠 | 🧠 localStorage only today |
+| 51 | Supabase project wiring | 🧠 | ✅ migrations applied: profiles/wallets/wallet_tx/brightpay_requests + SECURITY DEFINER RPCs (games-mcp `aqsvdmramlaxuwpmaxzu`) |
+| 52 | User accounts persisted | 🧠 | ✅ device tenant (playerId UUID → profiles row, authoritative balance/ledger via RPC); anonymous/phone auth deferred to dashboard |
 | 53 | Balances server-validated | 🧠 | 🧠 api-server confirms before crediting |
 | 54 | e2e withdraw test against sandbox | 🧠 | ⬜ needs test STK creds |
 | 55 | Realtime rooms | 🧠 | ⬜ esther O2 `code.ts` consumes `roomcodes` |
@@ -89,7 +89,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ open.
 | 60 | Server-side escrow ledger | 🧠 | ⬜ wallet-service client-ledger only |
 | 61 | Room GC / expiry | 🧠 | ⬜ O2 `expiresIn`/`touch` land here |
 | 62 | Rate limiting on BrightPay proxy | 🧠 | ⬜ |
-| 63 | DB migrations folder | 🧠 | ⬜ |
+| 63 | DB migrations folder | 🧠 | ✅ `supabase/migrations/` (wallet_ledger + wallet_status_mapping, both applied live) |
 | 64 | Seeds/backups | 🧠 | ⬜ |
 
 ## E. Security (65–75)

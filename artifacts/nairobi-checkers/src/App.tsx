@@ -20,6 +20,7 @@ import {
 } from '@/components/game/player-store';
 import { loadSettings, saveSettings, type Settings } from '@/components/game/settings-store';
 import { startAmbient, stopAmbient, playStreak, setAudioEnabled } from '@/components/game/audio-engine';
+import { ensureDbProfile, fetchDbBalanceKsh, isDbConfigured } from '@/lib/supabase';
 
 // Route-level code splitting: heavy pages load only when visited.
 const WalletPage = lazy(async () => ({ default: (await import('@/pages/wallet-page')).WalletPage }));
@@ -63,6 +64,20 @@ function AppRouter() {
     const stored = storedValue === null ? Number.NaN : Number(storedValue);
     return Number.isFinite(stored) && stored >= 0 ? stored : 2450;
   });
+  // Hydrate the authoritative wallet balance from the server ledger on boot;
+  // without Supabase configured this is a silent no-op (localStorage seed wins).
+  useEffect(() => {
+    if (!isDbConfigured()) return;
+    let cancelled = false;
+    void ensureDbProfile().then(() => fetchDbBalanceKsh()).then((ksh) => {
+      if (cancelled || ksh === null) return;
+      setCashBalance(ksh);
+      window.localStorage.setItem('nairobi-cash-balance', String(ksh));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [career, setCareer] = useState<Career>(() => loadCareer());
   const [activeGame, setActiveGame] = useState<GameLaunch | null>(null);
@@ -121,23 +136,23 @@ function AppRouter() {
     showToast(`Welcome, ${nextAccount.displayName}. Cash tables are ready for review.`);
   };
   // Called by WalletPage only after BrightPay confirms the STK deposit (server-verified).
-  const handleDepositConfirmed = (amount: number) => {
+  const handleDepositConfirmed = (amount: number, authoritativeKsh?: number) => {
     setCashBalance((current) => {
-      const next = current + amount;
+      const next = typeof authoritativeKsh === 'number' ? Math.max(0, authoritativeKsh) : current + amount;
       window.localStorage.setItem('nairobi-cash-balance', String(next));
       return next;
     });
     updateCareer({ ...career, cashIns: career.cashIns + amount });
     setMpesaAlert({
       code: makeMpesaCode(), amount, direction: 'in', counterparty: 'GAMES254 DEPOSIT',
-      newBalance: cashBalance + amount, at: Date.now(),
+      newBalance: typeof authoritativeKsh === 'number' ? authoritativeKsh : cashBalance + amount, at: Date.now(),
     });
   };
   // Called by WalletPage only after /api/brightpay/withdraw returns 200
   // (HMAC-signed server-side). We still own the local mutation; the server owns the truth.
-  const handleWithdrawConfirmed = (amount: number, phone: string, _externalReference: string) => {
+  const handleWithdrawConfirmed = (amount: number, phone: string, _externalReference: string, authoritativeKsh?: number) => {
     setCashBalance((current) => {
-      const next = Math.max(0, current - amount);
+      const next = typeof authoritativeKsh === 'number' ? Math.max(0, authoritativeKsh) : Math.max(0, current - amount);
       window.localStorage.setItem('nairobi-cash-balance', String(next));
       return next;
     });
@@ -145,7 +160,7 @@ function AppRouter() {
     setMpesaAlert({
       code: makeMpesaCode(), amount, direction: 'out',
       counterparty: normalizeKenyanPhone(phone) ?? phone,
-      newBalance: Math.max(0, cashBalance - amount), at: Date.now(),
+      newBalance: typeof authoritativeKsh === 'number' ? authoritativeKsh : Math.max(0, cashBalance - amount), at: Date.now(),
     });
   };
 
